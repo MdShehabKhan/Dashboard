@@ -1,0 +1,342 @@
+---
+title: "Video Game Sales Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+<style type="text/css">
+
+.navbar {  
+    background-color: #4682B4;
+    border-color: #4682B4;
+    font-family: Cambria;
+    font-color: white;
+}
+
+.navbar-brand {
+  font-size: 35px;
+}
+.sidebar {
+   background-color: white;
+   font-family: Cambria;
+   color: #4682B4;
+   ont-color: #4682B4;
+   font-size: 25px;
+  }
+
+  
+.chart-title {  /* chart_title  */
+   font-size: 20px;
+   font-family: Cambria;
+}
+
+
+
+</style>
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(shiny)
+library(tidyverse)
+library(dygraphs)
+library(highcharter)
+library(DT)
+```
+
+
+```{r data}
+file_url <- "https://raw.githubusercontent.com/MdShehabKhan/Dashboard/main/Video%20game%20sales.csv"
+
+game <- read.csv(file = file_url, stringsAsFactors = FALSE) 
+
+
+yr <- game |> select(Year) |> distinct() |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  mutate(Year=as.numeric(Year)) |>  arrange(Year)
+
+```
+
+Yearly Sales
+======================================================================
+
+## Sidebar {.sidebar data-width="350"}
+
+```{r}
+sliderInput(inputId = "year",label = "Year", min = 1980, max = 2016, value = yr, ticks = T,animate = F,sep = "",width = 350)
+```
+
+## Row {data-height="150"}
+
+### Sale on North America
+
+```{r}
+
+
+renderValueBox({
+    valueBox(caption = tags$p(paste0("Sale in North America - ", input$year), style = "font-size: 120%; 
+                              font-family: Cambria; 
+                              font-weight: bold;
+                              color: #39678E;"),
+      tags$object(game |> select(Year, NA_Sales) |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  group_by(Year) |> 
+  summarise(na=sum(NA_Sales, na.rm = T)) |>
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) |> 
+  filter(Year==input$year) |> 
+    pull(na),style = "font-size: 120%; font-family: Cambria; color: #39678E;"), 
+      icon = "fa-dollar",
+      color = "#A7C7E7"
+    )
+  })
+
+
+```
+
+### Chart A2
+
+```{r}
+
+
+renderValueBox({
+    valueBox(caption = tags$p(paste0("Sale in Europe - ", input$year), style = "font-size: 120%; 
+                              font-family: Cambria; 
+                              font-weight: bold;
+                              color: #2A4040;"),
+      tags$object(game |> select(Year, EU_Sales) |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  group_by(Year) |> 
+  summarise(eu=sum(EU_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) |> 
+  filter(Year==input$year) |> 
+    pull(eu),style = "font-size: 120%; font-family: Cambria; color: #2A4040;"), 
+      icon = "fa-euro",
+      color = "#5F9EA0"
+    )
+  })
+
+```
+
+### Chart A3
+
+```{r}
+
+renderValueBox({
+    valueBox(caption = tags$p(paste0("Sale in Japan - ", input$year), style = "font-size: 120%; 
+                              font-family: Cambria; 
+                              font-weight: bold;
+                              color: #616194 ;"),
+      tags$object(game |> select(Year, JP_Sales) |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  group_by(Year) |> 
+  summarise(jp=sum(JP_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) |> 
+  filter(Year==input$year) |> 
+    pull(jp),style = "font-size: 120%; font-family: Cambria; color: #616194 ;"), 
+      icon = "fa-yen",
+      color = "#CCCCFF"
+    )
+  })
+```
+
+### Chart A4
+
+```{r}
+
+renderValueBox({
+    valueBox(caption = tags$p(paste0("Global Sale - ", input$year), style = "font-size: 120%; 
+                              font-family: Cambria; 
+                              font-weight: bold;
+                              color: #415C57 ;"),
+      tags$object(game |> select(Year, JP_Sales) |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  group_by(Year) |> 
+  summarise(jp=sum(JP_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) |> 
+  filter(Year==input$year) |> 
+    pull(jp),style = "font-size: 120%; font-family: Cambria; color: #415C57 ;"), 
+      icon = "fa-globe",
+      color = "#96DED1"
+    )
+  })
+
+```
+
+## Row {data-height="700"}
+
+### Sales Trend
+
+```{r}
+na <- 
+game |> select(Year, NA_Sales) |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  group_by(Year) |> 
+  summarise(na=sum(NA_Sales, na.rm = T)) |>
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year)
+
+na <- 
+game |> select(Year, NA_Sales) |> 
+  filter(Year!="N/A") |> 
+  group_by(Year) |> 
+  summarise(na=sum(NA_Sales, na.rm = T)) |>
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year)
+
+
+eu <- 
+game |> select(Year, EU_Sales) |> 
+  filter(Year!="N/A") |> 
+  group_by(Year) |> 
+  summarise(eu=sum(EU_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) 
+
+
+jp <- 
+game |> select(Year, JP_Sales) |> 
+  filter(Year!="N/A") |> 
+  group_by(Year) |> 
+  summarise(jp=sum(JP_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year)
+
+
+glb <- 
+game |> select(Year, Global_Sales) |>
+  filter(Year!="N/A") |> 
+  group_by(Year) |> 
+  summarise(glb=sum(Global_Sales, na.rm = T)) |> 
+  mutate(Year=as.numeric(Year)) |>
+  arrange(Year) 
+
+sales <- 
+na |> full_join(eu, by="Year") |>
+  full_join(jp, by="Year") |> 
+  full_join(glb, by="Year") |> 
+  filter(!(Year %in% c("N/A", 2020, 2017))) 
+
+name <- c("Year","NA","EU","JP","GLB")
+
+names(sales) <- name
+
+graph <- 
+dygraph(sales) |> dyRangeSelector()
+
+renderDygraph(graph)
+```
+
+Genre wise Sales
+======================================================================
+
+Row
+-------------------------------------
+    
+### North America
+    
+```{r}
+na_g <- 
+game |> select(Genre, NA_Sales) |> 
+  group_by(Genre) |> 
+  summarise(sale_in_mln=sum(NA_Sales, na.rm = T)) |> 
+  arrange(desc(sale_in_mln))
+
+na_g |> 
+  hchart(
+    "treemap", 
+    hcaes(x = Genre, value = sale_in_mln, color=sale_in_mln)
+    ) |> hc_colorAxis(minColor = "#F14B4B",
+    maxColor = "#3775A1") 
+```
+ 
+### Europe
+    
+```{r}
+eu_g <- 
+game |> select(Genre, EU_Sales) |> 
+  group_by(Genre) |> 
+  summarise(sale_in_mln=sum(EU_Sales, na.rm = T)) |> 
+  arrange(desc(sale_in_mln))
+
+eu_g |> 
+  hchart(
+    "treemap", 
+    hcaes(x = Genre, value = sale_in_mln, color=sale_in_mln)
+    ) |> hc_colorAxis(minColor = "yellow",
+    maxColor = "#234BD3")
+``` 
+
+Row
+-------------------------------------
+    
+### Japan
+    
+```{r}
+jp_g <- 
+game |> select(Genre, JP_Sales) |> 
+  group_by(Genre) |> 
+  summarise(sale_in_mln=sum(JP_Sales, na.rm = T)) |> 
+  arrange(desc(sale_in_mln))
+
+jp_g |> 
+  hchart(
+    "treemap", 
+    hcaes(x = Genre, value = sale_in_mln, color=sale_in_mln)
+    ) |> hc_colorAxis(minColor = "white",
+    maxColor = "#EA4828")
+```
+    
+### Global
+
+```{r}
+glb_g <- 
+game |> select(Genre, Global_Sales) |> 
+  group_by(Genre) |> 
+  summarise(sale_in_mln=sum(Global_Sales, na.rm = T)) |> 
+  arrange(desc(sale_in_mln))
+
+glb_g |> 
+hchart(
+    "treemap", 
+    hcaes(x = Genre, value = sale_in_mln, color=sale_in_mln)
+    ) |> hc_colorAxis(minColor = "green",
+    maxColor = "#713333")
+```
+
+Top 10
+======================================================================
+## Sidebar {.sidebar data-width="350"}
+
+```{r}
+sliderInput(inputId = "year2",label = "Year", min = 1980, max = 2016, value = yr, ticks = T,animate = F,sep = "",width = 350)
+```
+
+
+Row
+------------------------------------- 
+```{r}
+
+
+renderDataTable(game |> select(Name,Year, Publisher,NA_Sales,EU_Sales, JP_Sales,Global_Sales) |> filter(!(Year %in% c("N/A", 2020, 2017))) |> 
+  mutate(Year=as.numeric(Year)) |>
+  group_by(Year,Name,Publisher) |> 
+  summarise(na=sum(NA_Sales, na.rm = T),
+            eu=sum(EU_Sales, na.rm = T),
+            jp=sum(JP_Sales, na.rm = T),
+            glb=sum(Global_Sales, na.rm = T)) |> 
+  mutate(total=na+eu+jp+glb) |> 
+  select(Year, Name, total,Publisher) |> 
+  filter(Year==input$year2) |>
+  arrange(desc(total)) |>
+  head(10) |> 
+  ungroup() |> 
+  mutate(Rank = dense_rank(desc(total))) |> 
+  select(Rank,Name,Publisher) |> 
+  rename(Game=Name), filter = "none",rownames = F,options = list(pageLength = 10), autoHideNavigation = T)
+
+```
+
